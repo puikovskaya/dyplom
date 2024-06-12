@@ -9,7 +9,6 @@ import test as data_process
 conf = "D:/Diplom/opensmile-master/config/emobase/emobase.conf"
 file = None
 results_root_path = "D:/Diplom/results/"
-#test
 
 def emotions(df):
     global lbl_res
