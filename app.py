@@ -13,8 +13,8 @@ from matplotlib.figure import Figure
 
 # COLORS
 COLOR_WHITE = "#ffffff"
-COLOR_GRAY = "#2f2f2f"
-COLOR_LIGHT_GRAY = "#4f4f4f"
+COLOR_GRAY = "#E2E2E2"
+COLOR_LIGHT_GRAY = "#A5A5A5"
 
 # WINDOW PARAMETERS
 WINDOW_TITLE = "Узнай свою эмоцию по голосу"
@@ -67,8 +67,7 @@ def start_recording():
             print(status)
         recording.append(indata.copy())
 
-    # Начинаем запись
-    print("Запись началась...")
+    print("[App] | Запись запущена.")
     stream = sd.InputStream(samplerate=samplerate, channels=channels, callback=callback)
     stream.start()
 
@@ -96,7 +95,7 @@ def stop_recording_and_save():
     record_file_button.config(text="Начать запись", command=start_recording)
 
 
-def resize_image(image, max_size=(80, 80)):
+def resize_image(image, max_size):
     original_size = image.size
     ratio = min(max_size[0]/original_size[0], max_size[1]/original_size[1])
     new_size = tuple([int(x*ratio) for x in original_size])
@@ -111,20 +110,33 @@ def ensure_directory_exists(directory_path):
 
 
 def emotions(df):
-    global results_label
+    global results_label, emotion_icon_label
 
     emotion = df['class'][0]
+
     messages = {
-        0: "Мы заметили, что вы счастливы.\nЭто замечательно!\nПусть счастье всегда сопровождает вас и приносит радость в каждый день!",
-        1: "Мы заметили, что вы грустите.\nЕсли вам нужно поговорить, не стесняйтесь обратиться за поддержкой.\nБудьте сильны. Грустные моменты временны, и впереди вас ждут лучшие дни!",
-        2: "Ваш голос звучит нейтрально. Отлично!\nПродолжайте в том же духе. Спокойствие — это ключ к успеху!",
-        3: "Мы заметили, что вы злитесь.\nПостарайтесь глубоко вдохнуть и выдохнуть, чтобы успокоиться.\nСохраняйте спокойствие и найдите способ выразить свои чувства конструктивно.",
-        4: "Мы заметили, что вы испытываете отвращение.\nВозможно, лучше отложить этот разговор и\nвернуться к нему позже. Старайтесь избегать\nнеприятных ситуаций и окружать себя позитивными вещами.",
-        5: "Мы заметили, что вы испуганы.\nПостарайтесь расслабиться и помните, что всё под контролем.\nБудьте спокойны и осторожны. Всё будет хорошо!",
-        6: "Мы заметили, что вы удивлены.\nНадеемся, это приятный сюрприз!\nПусть ваш день будет наполнен приятными неожиданностями!"
+        0: "Счастье",
+        1: "Грусть",
+        2: "Нейтрально",
+        3: "Злость",
+        4: "Отвращение",
+        5: "Испуг",
+        6: "Удивление"
     }
 
-    results_label.config(text=messages.get(emotion, "Эмоция не распознана, попробуйте еще раз"))
+    icons = {
+        0: happy_icon,
+        1: sad_icon,
+        2: neutral_icon,
+        3: rage_icon,
+        4: disgust_icon,
+        5: fear_icon,
+        6: astonishment_icon
+    }
+
+    results_label.config(text=messages.get(emotion, "Эмоция не распознана, попробуйте еще раз"), font="Arial 20")
+    emotion_icon_label.config(image=icons.get(emotion))
+    set_emotion_icon_state(True)
 
 
 def load_file_and_show_results():
@@ -155,16 +167,10 @@ def show_results():
     draw_spectrogram()
 
 
-def load_logo():
-    global assets_folder_path, logo_icon
-    
-    logo_path = assets_folder_path + "logo1.png"
-
-    if os.path.isfile(logo_path):
-        logo_image = Image.open(logo_path)
-        logo_image = resize_image(logo_image)
-
-        logo_icon = ImageTk.PhotoImage(logo_image)
+def load_icon(file_path, size=(100, 100)):
+    image = Image.open(file_path)
+    resized_image = resize_image(image, size)
+    return ImageTk.PhotoImage(resized_image)
 
 
 spectrogram_canvas = None
@@ -217,15 +223,18 @@ def create_window():
 def create_and_add_header(window):
     global header_frame, logo_icon
 
-    header_frame = Frame(window, background=COLOR_LIGHT_GRAY, borderwidth=2, relief="groove", pady=10)
+    header_frame = Frame(window, background=COLOR_LIGHT_GRAY, width=710, height=100, borderwidth=1, relief="solid", pady=10)
+    header_frame.pack_propagate(False)
+    header_frame.pack(pady=10)
 
-    logo_label = Label(header_frame, image=logo_icon, background=COLOR_LIGHT_GRAY)
+    header_inner_frame = Frame(header_frame, background=COLOR_LIGHT_GRAY, relief="flat")
+    header_inner_frame.pack()
+
+    logo_label = Label(header_inner_frame, image=logo_icon, background=COLOR_LIGHT_GRAY)
     logo_label.pack(side="left", padx=10)
 
-    header_label = Label(header_frame, text="Анализ эмоций", font="Arial 28", background=COLOR_LIGHT_GRAY, foreground=COLOR_WHITE)
+    header_label = Label(header_inner_frame, text="Анализ эмоций", font="Arial 28", background=COLOR_LIGHT_GRAY, foreground=COLOR_WHITE)
     header_label.pack(side="right", padx=10)
-
-    header_frame.pack(pady=10)
 
 
 def create_and_add_files_frame(window):
@@ -242,10 +251,10 @@ def create_and_add_load_file_frame(window):
     load_file_frame.pack_propagate(False)
     load_file_frame.pack(side="left", padx=5)
 
-    header_label = Label(load_file_frame, text="Выбор файла", font='Arial 18', background=COLOR_LIGHT_GRAY, foreground=COLOR_WHITE)
+    header_label = Label(load_file_frame, text="Выбор файла", font='Arial 20', background=COLOR_LIGHT_GRAY, foreground=COLOR_WHITE)
     header_label.pack(pady=10)
 
-    load_file_button = Button(load_file_frame, text="Загрузить", font='Arial 15', command=load_file_and_show_results)
+    load_file_button = Button(load_file_frame, text="Загрузить", font='Arial 16', command=load_file_and_show_results)
     load_file_button.pack(pady=10)
 
 
@@ -256,25 +265,40 @@ def create_and_add_record_file_frame(window):
     record_file_frame.pack_propagate(False)
     record_file_frame.pack(side="left", padx=5)
 
-    header_label = Label(record_file_frame, text="Запись голоса", font='Arial 18', background=COLOR_LIGHT_GRAY, foreground=COLOR_WHITE)
+    header_label = Label(record_file_frame, text="Запись голоса", font='Arial 20', background=COLOR_LIGHT_GRAY, foreground=COLOR_WHITE)
     header_label.pack(pady=10)
 
-    record_file_button = Button(record_file_frame, text="Начать запись", font='Arial 15', command=start_recording)
+    record_file_button = Button(record_file_frame, text="Начать запись", font='Arial 16', command=start_recording)
     record_file_button.pack(pady=10)
 
 
 def create_and_add_results_frame(window):
-    global results_frame, results_label
+    global results_frame, results_label, emotion_icon_label
 
     results_frame = Frame(window, width=RESULTS_FRAME_WIDTH, height=RESULTS_FRAME_HEIGHT, background=COLOR_LIGHT_GRAY, borderwidth=1, relief="solid")
     results_frame.pack_propagate(False)
     results_frame.pack(pady=10)
 
-    header_label = Label(results_frame, text="Результаты", font='Arial 18', background=COLOR_LIGHT_GRAY, foreground=COLOR_WHITE)
+    header_label = Label(results_frame, text="Результаты", font='Arial 20', background=COLOR_LIGHT_GRAY, foreground=COLOR_WHITE)
     header_label.pack(pady=10)
 
-    results_label = Label(results_frame, text="Загрузите файл или запишите голос,\nчтобы проанализировать эмоции", font='Arial 14', background=COLOR_LIGHT_GRAY, foreground=COLOR_WHITE)
-    results_label.pack(pady=10)
+    results_inner_frame = Frame(results_frame, background=COLOR_LIGHT_GRAY, relief="flat")
+    results_inner_frame.pack(pady=[10, 20])
+
+    emotion_icon_label = Label(results_inner_frame, image=logo_icon, background=COLOR_LIGHT_GRAY)
+    emotion_icon_label.pack(side="left", padx=5)
+
+    results_label = Label(results_inner_frame, text="Загрузите файл или запишите голос,\nчтобы проанализировать эмоции", font="Arial 15", background=COLOR_LIGHT_GRAY, foreground=COLOR_WHITE)
+    results_label.pack(side="right", padx=5)
+
+
+def set_emotion_icon_state(state: bool):
+    global emotion_icon_label
+
+    if (state):
+        emotion_icon_label.pack()
+    else:
+        emotion_icon_label.pack_forget()
 
 
 if __name__ == '__main__':
@@ -283,11 +307,21 @@ if __name__ == '__main__':
     ensure_directory_exists(recordings_folder_path)
 
     window = create_window()
-    load_logo()
+    
+    logo_icon = load_icon(assets_folder_path + "logo1.png", (80, 80))
+    rage_icon = load_icon(assets_folder_path + "rage.png", (64, 64))
+    sad_icon = load_icon(assets_folder_path + "sad.png", (64, 64))
+    happy_icon = load_icon(assets_folder_path + "happy.png", (64, 64))
+    neutral_icon = load_icon(assets_folder_path + "neutral.png", (64, 64))
+    disgust_icon = load_icon(assets_folder_path + "disgust.png", (64, 64))
+    fear_icon = load_icon(assets_folder_path + "fear.png", (64, 64))
+    astonishment_icon = load_icon(assets_folder_path + "astonishment.png", (64, 64))
+
     create_and_add_header(window)
     create_and_add_files_frame(window)
     create_and_add_load_file_frame(files_frame)
     create_and_add_record_file_frame(files_frame)
     create_and_add_results_frame(window)
+    set_emotion_icon_state(False)
 
     window.mainloop()
