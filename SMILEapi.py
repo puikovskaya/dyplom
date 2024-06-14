@@ -17,7 +17,7 @@ else:
     smileapi_path = os.path.join(os.getcwd(), "libSMILEapi.so")
 
 # Возьмите свой путь
-smileapi = cdll.LoadLibrary("D:/Diplom/opensmile-master/build/progsrc/smileapi/Release/SMILEapi.dll")
+smileapi = cdll.LoadLibrary("C:/Job/Temp/opensmile-master/build/progsrc/smileapi/Release/SMILEapi.dll")
 
 # definitions from smileComponent.hpp
 CMSG_textLen = 64
