@@ -1,13 +1,12 @@
 import os
 import tkinter as tk
 from tkinter import filedialog, ttk
-from tkinter import Label, Button, Frame, font
+from tkinter import Label, Button, Frame
 from PIL import Image, ImageTk
 import data_process
 import sounddevice as sd
 import numpy as np
 import scipy.io.wavfile as wav
-import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 
@@ -44,11 +43,10 @@ results_folder_path = runtime_folder_path + '\\results\\'
 # FILE
 file = None
 
-# Параметры записи
-samplerate = 44100  # Частота дискретизации
-channels = 2  # Количество каналов (стерео)
+# RECORDING PARAMETERS
+samplerate = 44100
+channels = 2
 
-# Переменная для хранения записи
 recording = []
 stream = None
 
@@ -164,7 +162,7 @@ def show_results():
 
     df_new = df[['name', 'class']]
     emotions(df_new)
-    draw_spectrogram()
+    draw_audio_waveform()
 
 
 def load_icon(file_path, size=(100, 100)):
@@ -177,8 +175,9 @@ spectrogram_canvas = None
 spectrogram_figure = None
 spectrogram_colorbar = None
 ax = None
-def draw_spectrogram():
-    global results_frame, spectrogram_canvas, spectrogram_figure, spectrogram_colorbar, ax
+
+def draw_audio_waveform():
+    global results_frame, spectrogram_frame, spectrogram_canvas, spectrogram_figure, ax
 
     rate, data = wav.read(file_choise)
     
@@ -190,21 +189,19 @@ def draw_spectrogram():
     if spectrogram_figure is None:
         spectrogram_figure = Figure(figsize=(8, 4))
         ax = spectrogram_figure.add_subplot(111)
-        ax.set_xlabel('Время [сек]')
-        ax.set_ylabel('Частота [Hz]')
-        ax.set_title('Спектрограма')
+    else:
+        ax.clear()
     
-    spectrum, freqs, t, im = ax.specgram(data_mono, Fs=rate, NFFT=1024, cmap='viridis')
+    ax.set_xlabel('Время [сек]')
+    ax.set_ylabel('Амплитуда')
+    ax.set_title('Аудиоспектр')
 
-    if spectrogram_colorbar is not None:
-        spectrogram_colorbar.remove()
+    time = np.arange(0, len(data_mono)) / rate
+    ax.plot(time, data_mono)
     
-    spectrogram_colorbar = spectrogram_figure.colorbar(im, ax=ax)
-    
-    # Создание холста для вставки в tkinter
-    if (spectrogram_canvas == None):
-        spectrogram_canvas = FigureCanvasTkAgg(spectrogram_figure, master=results_frame)
-        spectrogram_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+    if spectrogram_canvas is None:
+        spectrogram_canvas = FigureCanvasTkAgg(spectrogram_figure, master=spectrogram_frame)
+        spectrogram_canvas.get_tk_widget().pack(fill=tk.Y, expand=True)
     
     spectrogram_canvas.draw()
     spectrogram_canvas.flush_events()
@@ -273,7 +270,7 @@ def create_and_add_record_file_frame(window):
 
 
 def create_and_add_results_frame(window):
-    global results_frame, results_label, emotion_icon_label
+    global results_frame, results_label, emotion_icon_label, spectrogram_frame
 
     results_frame = Frame(window, width=RESULTS_FRAME_WIDTH, height=RESULTS_FRAME_HEIGHT, background=COLOR_LIGHT_GRAY, borderwidth=1, relief="solid")
     results_frame.pack_propagate(False)
@@ -290,6 +287,10 @@ def create_and_add_results_frame(window):
 
     results_label = Label(results_inner_frame, text="Загрузите файл или запишите голос,\nчтобы проанализировать эмоции", font="Arial 15", background=COLOR_LIGHT_GRAY, foreground=COLOR_WHITE)
     results_label.pack(side="right", padx=5)
+
+    spectrogram_frame = Frame(results_frame, width=RESULTS_FRAME_WIDTH - 40, height=380, background=COLOR_LIGHT_GRAY, relief="flat")
+    spectrogram_frame.pack_propagate(False)
+    spectrogram_frame.pack()
 
 
 def set_emotion_icon_state(state: bool):
